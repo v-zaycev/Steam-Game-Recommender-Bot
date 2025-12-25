@@ -2,190 +2,192 @@ from dotenv import load_dotenv
 import os
 import asyncio
 import logging
-from aiogram import Bot, Dispatcher, types, F
-from aiogram.filters import CommandStart, Command
-from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+import requests
+from io import BytesIO
+import aiohttp
+from aiogram import Bot, Dispatcher, Router, types, F
+from aiogram.filters import CommandStart, Command, or_f
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, BufferedInputFile
+from aiogram.fsm.state import State, StatesGroup
 
-# Настройка логирования
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
-# Токен вашего бота (замените на свой)
-load_dotenv("params.env")
-BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-# Создаем объекты бота и диспетчера
-bot = Bot(token=BOT_TOKEN)
-dp = Dispatcher()
+class TelegramBot:
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    def __init__(self):
+        load_dotenv("params.env")
+        BOT_TOKEN = os.getenv("BOT_TOKEN")
+        self.bot = Bot(token=BOT_TOKEN)
+        self.dp = Dispatcher()
+        self.router = Router()
+        self.router.message.register(self.cmd_start, CommandStart())
+        self.router.message.register(self.cmd_help, or_f(Command("help"), (F.text == "ℹ️ Помощь")))
+        self.router.message.register(self.cmd_echo, Command("echo"))
+        self.router.message.register(self.cmd_buttons, or_f(Command("buttons"), (F.text == "🎯 Кнопки")))
+        self.router.message.register(self.cmd_stats, or_f(Command("stats"), (F.text == "📊 Статистика")))
+        self.router.message.register(self.show_links, or_f(F.text == "📊 Dota 2 информация"))
+        self.dp.include_router(self.router)
 
-# ========== КЛАВИАТУРЫ ==========
-# Обычная клавиатура
-def get_main_keyboard():
-    keyboard = ReplyKeyboardMarkup(
-        keyboard=[
-            [KeyboardButton(text="ℹ️ Помощь"), KeyboardButton(text="🎯 Кнопки")],
-            [KeyboardButton(text="📊 Статистика"), KeyboardButton(text="🔗 Ссылки")]
-        ],
-        resize_keyboard=True
-    )
-    return keyboard
+    async def start(self):  # ✅ Отдельный метод для запуска
+        await self.dp.start_polling(self.bot)
 
-# Inline-клавиатура
-def get_inline_keyboard():
-    buttons = [
-        [InlineKeyboardButton(text="👍", callback_data="like"), 
-         InlineKeyboardButton(text="👎", callback_data="dislike")],
-        [InlineKeyboardButton(text="GitHub", url="https://github.com")],
-        [InlineKeyboardButton(text="Удалить сообщение", callback_data="delete")]
-    ]
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
+    # ========== КЛАВИАТУРЫ ==========
+    # Обычная клавиатура (внизу экрана)
+    def get_main_keyboard(self):
+        keyboard = ReplyKeyboardMarkup(
+            keyboard=[
+                [KeyboardButton(text="ℹ️ Помощь"), KeyboardButton(text="Добавить профиль")],
+                [KeyboardButton(text="📊 Статистика"), KeyboardButton(text="📊 Dota 2 информация")]
+            ],
+            resize_keyboard=True
+        )
+        return keyboard
 
-# ========== ОБРАБОТЧИКИ КОМАНД ==========
+    # Inline-клавиатура (встроенная в сообщение)
+    def get_inline_keyboard(self):
+        buttons = [
+            [InlineKeyboardButton(text="👍", callback_data="like"), 
+            InlineKeyboardButton(text="👎", callback_data="dislike")],
+            [InlineKeyboardButton(text="GitHub", url="https://github.com")],
+            [InlineKeyboardButton(text="Удалить сообщение", callback_data="delete")]
+        ]
+        return InlineKeyboardMarkup(inline_keyboard=buttons)    
 
-# /start
-@dp.message(CommandStart())
-async def cmd_start(message: types.Message):
-    user = message.from_user
-    await message.answer(
-        f"👋 Привет, {user.first_name}!\n"
-        f"Я простой бот на aiogram\n"
-        f"Используй /help для списка команд",
-        reply_markup=get_main_keyboard()
-    )
+    # ========== ОБРАБОТЧИКИ КОМАНД ==========
 
-# /help
-@dp.message(Command("help"))
-@dp.message(F.text == "ℹ️ Помощь")
-async def cmd_help(message: types.Message):
-    help_text = """
-📚 <b>Доступные команды:</b>
+    # /start
+    async def cmd_start(self, message: types.Message):
+        user = message.from_user
+        await message.answer(
+            f"👋 Привет, {user.first_name} {user.last_name}!\n"
+            f"Я Steam Game Recommender Bot\n"
+            f"Используй /help для списка команд или воспользуйся клавиатурой команд.",
+            reply_markup = self.get_main_keyboard()
+        )
 
-/start - Начать диалог
-/help - Эта справка
-/echo [текст] - Повторить текст
-/buttons - Показать inline-кнопки
-/stats - Статистика
+    # /help
+    async def cmd_help(self, message: types.Message):
+        help_text = """
+    📚 <b>Доступные команды:</b>
 
-<b>Или используй кнопки внизу!</b>
-    """
-    await message.answer(help_text, parse_mode="HTML")
+    /start - Начать диалог
+    /help - Эта справка
+    /echo [текст] - Повторить текст
+    /buttons - Показать inline-кнопки
+    /stats - Статистика
 
-# /echo
-@dp.message(Command("echo"))
-async def cmd_echo(message: types.Message):
-    # Получаем текст после команды /echo
-    if len(message.text.split()) > 1:
-        text = " ".join(message.text.split()[1:])
-        await message.answer(f"📢 Вы сказали: {text}")
-    else:
-        await message.answer("Напишите что-нибудь после /echo")
+    <b>Или используй кнопки внизу!</b>
+        """
+        await message.answer(help_text, parse_mode="HTML")
 
-# /buttons
-@dp.message(Command("buttons"))
-@dp.message(F.text == "🎯 Кнопки")
-async def cmd_buttons(message: types.Message):
-    await message.answer(
-        "Вот inline-кнопки:\n"
-        "• Нажми 👍 или 👎\n"
-        "• Перейди на GitHub\n"
-        "• Удали это сообщение",
-        reply_markup=get_inline_keyboard()
-    )
+    # /echo
+    async def cmd_echo(self, message: types.Message):
+        # Получаем текст после команды /echo
+        if len(message.text.split()) > 1:
+            text = " ".join(message.text.split()[1:])
+            await message.answer(f"📢 Вы сказали: {text}")
+        else:
+            await message.answer("Напишите что-нибудь после /echo")
 
-# /stats или кнопка "Статистика"
-@dp.message(Command("stats"))
-@dp.message(F.text == "📊 Статистика")
-async def cmd_stats(message: types.Message):
-    user = message.from_user
-    stats_text = f"""
-📊 <b>Ваша статистика:</b>
+    # /buttons
+    async def cmd_buttons(self, message: types.Message):
+        await message.answer(
+            "Вот inline-кнопки:\n"
+            "• Нажми 👍 или 👎\n"
+            "• Перейди на GitHub\n"
+            "• Удали это сообщение",
+            reply_markup= self.get_inline_keyboard()
+        )
 
-👤 <b>Имя:</b> {user.first_name}
-🆔 <b>ID:</b> {user.id}
-📝 <b>Username:</b> @{user.username if user.username else 'не указан'}
-📅 <b>Дата регистрации:</b> {user.language_code}
-    """
-    await message.answer(stats_text, parse_mode="HTML")
+    # /stats или кнопка "Статистика"
+    async def cmd_stats(self, message: types.Message):
+        user = message.from_user
+        stats_text = f"""
+    📊 <b>Ваша статистика:</b>
 
-# Кнопка "Ссылки"
-@dp.message(F.text == "🔗 Ссылки")
-async def show_links(message: types.Message):
-    links_text = """
-🔗 <b>Полезные ссылки:</b>
+    👤 <b>Имя:</b> {user.first_name}
+    🆔 <b>ID:</b> {user.id}
+    📝 <b>Username:</b> @{user.username if user.username else 'не указан'}
+    📅 <b>Дата регистрации:</b> {user.language_code}
+        """
+        await message.answer(stats_text, parse_mode="HTML")
 
-• <a href="https://docs.aiogram.dev/">Документация aiogram</a>
-• <a href="https://core.telegram.org/bots/api">Telegram Bot API</a>
-• <a href="https://github.com/aiogram/aiogram">GitHub aiogram</a>
-    """
-    await message.answer(links_text, parse_mode="HTML", disable_web_page_preview=True)
+    # Кнопка "Ссылки"
+    async def show_links(self, message: types.Message):
+        """Минимальный пример отправки информации об игре с картинкой"""
+        
+        app_id = 570
+        
+        try:
+            # 1. Получаем данные об игре
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f'https://store.steampowered.com/api/appdetails?appids={app_id}') as response:
+                    data = await response.json()
+                    game_data = data[str(app_id)]['data']
+            
+            caption = f"*{game_data['name']}*\n\n{game_data.get('short_description', '')}"
+            image_url = game_data.get('header_image')
+            
+            if image_url:
+                # 2. Скачиваем картинку
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(image_url) as img_response:
+                        img_bytes = await img_response.read()
+                
+                # 3. Создаем BufferedInputFile из байтов
+                photo_file = BufferedInputFile(img_bytes, filename="dota2.jpg")
+                
+                # 4. Отправляем фото
+                await message.answer_photo(
+                    photo=photo_file,  # <-- Используем BufferedInputFile
+                    caption=caption,
+                    parse_mode='Markdown'
+                )
+            else:
+                await message.answer(caption, parse_mode='Markdown')
+                
+        except Exception as e:
+            await message.answer(f"Ошибка: {e}")
 
-# ========== ОБРАБОТКА CALLBACK-ЗАПРОСОВ ==========
+    # ========== ОБРАБОТКА CALLBACK-ЗАПРОСОВ ==========
 
-# Обработка нажатий на inline-кнопки
-@dp.callback_query(F.data == "like")
-async def process_like(callback: types.CallbackQuery):
-    await callback.answer("Спасибо за лайк! ❤️")
-    await callback.message.edit_text("Вы поставили 👍")
+    # Обработка нажатий на inline-кнопки
+    # @dp.callback_query(F.data == "like")
+    # async def process_like(callback: types.CallbackQuery):
+    #     await callback.answer("Спасибо за лайк! ❤️")
+    #     await callback.message.edit_text("Вы поставили 👍")
 
-@dp.callback_query(F.data == "dislike")
-async def process_dislike(callback: types.CallbackQuery):
-    await callback.answer("Жаль, что не понравилось 😢")
-    await callback.message.edit_text("Вы поставили 👎")
+    # @dp.callback_query(F.data == "dislike")
+    # async def process_dislike(callback: types.CallbackQuery):
+    #     await callback.answer("Жаль, что не понравилось 😢")
+    #     await callback.message.edit_text("Вы поставили 👎")
 
-@dp.callback_query(F.data == "delete")
-async def process_delete(callback: types.CallbackQuery):
-    await callback.message.delete()
-    await callback.answer("Сообщение удалено")
+    # @dp.callback_query(F.data == "delete")
+    # async def process_delete(callback: types.CallbackQuery):
+    #     await callback.message.delete()
+    #     await callback.answer("Сообщение удалено")
 
-# ========== ОБРАБОТКА РАЗНЫХ ТИПОВ СООБЩЕНИЙ ==========
+    # ========== ЗАПУСК БОТА ==========
 
-# Обработка фото
-@dp.message(F.photo)
-async def handle_photo(message: types.Message):
-    await message.answer(f"📸 Получил фото!\nID: {message.photo[-1].file_id}")
 
-# Обработка документов
-@dp.message(F.document)
-async def handle_document(message: types.Message):
-    doc = message.document
-    await message.answer(f"📄 Документ: {doc.file_name}")
-
-# Обработка стикеров
-@dp.message(F.sticker)
-async def handle_sticker(message: types.Message):
-    await message.answer(f"🎨 Стикер!\nEmoji: {message.sticker.emoji}")
-
-# Обработка голосовых сообщений
-@dp.message(F.voice)
-async def handle_voice(message: types.Message):
-    await message.answer(f"🎤 Голосовое сообщение!\nДлительность: {message.voice.duration} сек")
-
-# Обработка всех текстовых сообщений (кроме команд)
-@dp.message(F.text)
-async def handle_text(message: types.Message):
-    # Пропускаем команды и кнопки
-    if message.text.startswith('/') or message.text in ["ℹ️ Помощь", "🎯 Кнопки", "📊 Статистика", "🔗 Ссылки"]:
-        return
-    
-    await message.answer(f"📝 Вы написали: {message.text}")
-
-# ========== ЗАПУСК БОТА ==========
 
 async def main():
+    bot = TelegramBot() 
     print("🤖 Бот запускается...")
     
     try:
         # Удаляем вебхук (если был)
-        await bot.delete_webhook(drop_pending_updates=True)
+        await bot.bot.delete_webhook(drop_pending_updates=True)
         
         # Запускаем поллинг
-        await dp.start_polling(bot)
+        await bot.start()
         
     except Exception as e:
-        logger.error(f"Ошибка: {e}")
+        bot.logger.error(f"Ошибка: {e}")
     finally:
         # Закрываем сессию бота
-        await bot.session.close()
+        await bot.bot.session.close()
 
 if __name__ == "__main__":
     # Запускаем бота

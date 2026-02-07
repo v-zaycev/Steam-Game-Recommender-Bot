@@ -7,10 +7,8 @@ async def main():
     print("Бот запускается...")
     
     try:
-        # Удаляем вебхук (если был)
         await bot.bot.delete_webhook(drop_pending_updates=True)
         
-        # Запускаем поллинг
         await bot.start()
         
     except Exception as e:

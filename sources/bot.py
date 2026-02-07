@@ -2,6 +2,7 @@ from dotenv import load_dotenv
 import os
 import logging
 import aiohttp
+import asyncio
 from aiogram import Bot, Dispatcher, Router, types, F
 from aiogram.filters import CommandStart, Command, or_f
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
@@ -111,13 +112,6 @@ class TelegramBot:
         ids_data = await self.api_client.get_player_summaries(steam_ids + [steam_id]) 
         self.db_client.add_steam_users(ids_data)
         self.db_client.add_steam_friends(steam_id, steam_ids)
-        self.db_client.update(
-            attributes=['steam_id'],
-            table='bot_users',
-            data=[str(steam_id)],
-            id_column='tg_id',
-            id=message.from_user.id
-        )
         await message.answer(
             f"Id {steam_id} установлен, данные обновляются",
             reply_markup = self.get_main_keyboard(message.from_user.id)
@@ -132,14 +126,24 @@ class TelegramBot:
                         self.db_client.add_game(game)
                     else:
                         to_ignore.append(app['appid'])
+                    await asyncio.sleep(1)
+            await asyncio.sleep(1)
             data = [item for item in data if item['appid'] not in to_ignore]
             self.db_client.add_user_games(id, data)
 
         await state.clear()
+        self.db_client.update(
+            attributes=['steam_id'],
+            table='bot_users',
+            data=[str(steam_id)],
+            id_column='tg_id',
+            id=message.from_user.id
+        )
         await message.answer(
             f"Данные обновлены, расширенный функционал доступен",
             reply_markup = self.get_main_keyboard(message.from_user.id)
         )
+
 
     async def cmd_get_game_id(self, message: types.Message, state: FSMContext):
         await state.set_state(States.info_game_id_waiting)  # ВКЛЮЧИЛИ флаг

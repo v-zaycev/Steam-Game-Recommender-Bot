@@ -80,10 +80,7 @@ class SteamAPIClient:
                 if str(app_id) in data:
                     app_data = data[str(app_id)]
                     if app_data.get('success', False):
-                        result = (app_id, app_data.get('data', {}))
-        
-        # Пауза между запросами, чтобы не получить бан
-        await asyncio.sleep(1)
+                        result = (app_id, app_data.get('data', {}))        
         
         return result
     

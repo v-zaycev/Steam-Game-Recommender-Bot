@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+_minted-report/
+*.toc
+*.synctex.gz
+*.out
+*.log
+*.aux
+tmp*
+test*.py
+params.env

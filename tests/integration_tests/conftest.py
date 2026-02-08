@@ -45,7 +45,7 @@ def setup_test_database(self, db_config):
     self.test_db_config = db_config
 
 @pytest.fixture
-def mock_telegram_api(self):
+def mock_telegram_api():
     mock_message = AsyncMock()
     mock_message.from_user.id = 123456789
     mock_message.answer = AsyncMock()

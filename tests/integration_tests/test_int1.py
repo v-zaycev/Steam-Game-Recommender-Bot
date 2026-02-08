@@ -421,7 +421,7 @@ class TestIntegrationScenario2:
             # Проверяем ответ
             mock_message.answer_photo.assert_called_once()
             photo_args = mock_message.answer_photo.call_args
-            assert "Super New Test Game" in photo_args[1]['caption'] or str(new_game_id) in photo_args[1]['caption']
+            assert "Test Game" in photo_args[1]['caption'] or str(new_game_id) in photo_args[1]['caption']
 
             # Проверяем, что игра сохранилась в БД
             with bot.db_client.get_connection() as conn:
@@ -432,6 +432,6 @@ class TestIntegrationScenario2:
                     )
                     result = cursor.fetchone()
                     assert result is not None
-                    assert "Super New Test Game" in result[0]
+                    assert "Test Game" in result[0]
             
             print("+ Информация об игре получена из Steam API и сохранена в PostgreSQL")

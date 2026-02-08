@@ -1,0 +1,8 @@
+FROM postgres:17-alpine
+
+COPY db_sources/create_tables.sql /docker-entrypoint-initdb.d/01_create_tables.sql
+COPY db_sources/create_triggers.sql /docker-entrypoint-initdb.d/02_create_triggers.sql
+COPY db_sources/friends_updates_function.sql /docker-entrypoint-initdb.d/03_friends_updates_function.sql
+COPY db_sources/silimar_games_function.sql /docker-entrypoint-initdb.d/04_similar_games_function.sql
+COPY db_sources/recommendation_function.sql /docker-entrypoint-initdb.d/05_recommendation_function.sql
+

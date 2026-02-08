@@ -1,0 +1,16 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+COPY requirements-dev.txt .
+
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY sources/ ./sources/
+COPY tests/ ./tests/
+
+RUN touch ./sources/__init__.py
+
+CMD ["sh", "-c", "python -m pytest tests/unit_tests/ -v && python -m pytest tests/integration_tests/ -v"]

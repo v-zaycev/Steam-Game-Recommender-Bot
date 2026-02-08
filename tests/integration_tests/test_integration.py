@@ -13,6 +13,10 @@ from sources.bot import TelegramBot
 from sources.utils import States
 
 class TestIntegrationScenario:
+    @pytest.fixture(autouse=True)
+    def setup_test_database(self, db_config):
+        self.test_db_config = db_config
+        
     def create_mock_steam_api(self):
         """Создает мок Steam API с последовательными ответами для сценария."""
         mock_steam = AsyncMock()

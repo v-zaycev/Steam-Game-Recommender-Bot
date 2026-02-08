@@ -39,10 +39,6 @@ def clean_database(db_config):
     conn.close()
     
     yield
- 
-@pytest.fixture(autouse=True)
-def setup_test_database(self, db_config):
-    self.test_db_config = db_config
 
 @pytest.fixture
 def mock_telegram_api():

@@ -1,5 +1,4 @@
 import aiohttp
-import asyncio
 from typing import Dict, List, Optional, Set
 
 class SteamAPIClient:

@@ -1,12 +1,12 @@
 import json
 from typing import Dict, List
 import psycopg2
-from database_client import PgsqlClient
+from sources.database_client import PgsqlClient
 
-from utils import parse_steam_date
+from sources.utils import parse_steam_date
 
 class PgsqlApiClient(PgsqlClient):
-    def __init__(self, env : str):
+    def __init__(self, env : str = None):
         super().__init__(env)
 
     
@@ -32,8 +32,9 @@ class PgsqlApiClient(PgsqlClient):
     def add_game(client, game_data : tuple[int, Dict]):        
         appid = game_data[0]
         game = game_data[1]
-        # Парсим дату
-        release_date = parse_steam_date(game.get('release_date').get('date'))
+        release_date = game.get('release_date') 
+        if release_date is not None: 
+            release_date =parse_steam_date(release_date.get('date'))
         
         # Теги как JSON
         tags = json.dumps(game.get('tags', {}))

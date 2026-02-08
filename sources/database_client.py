@@ -1,14 +1,12 @@
-import json
 import os
-import sys
-from datetime import datetime
 from dotenv import load_dotenv
 import psycopg2
 from psycopg2.extras import execute_values
 
 class PgsqlClient:
-    def __init__(self, env : str):
-        load_dotenv(env)
+    def __init__(self, env : str = None):
+        if env is not None:
+            load_dotenv(env)
         self.db_host = os.getenv('DB_HOST', 'localhost')
         self.db_port = int(os.getenv('DB_PORT', 5432))
         self.db_base = os.getenv('DB_NAME')

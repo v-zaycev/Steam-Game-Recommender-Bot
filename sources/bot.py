@@ -9,9 +9,9 @@ from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemo
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 
-from database_api import PgsqlApiClient
-from steam_api_client import SteamAPIClient
-from utils import States, is_valid_steamid64 
+from sources.database_api import PgsqlApiClient
+from sources.steam_api_client import SteamAPIClient
+from sources.utils import States, is_valid_steamid64 
 
 
 class TelegramBot:
@@ -22,7 +22,7 @@ class TelegramBot:
     def __init__(self):
         load_dotenv("params.env")
         BOT_TOKEN = os.getenv("BOT_TOKEN")
-        self.db_client = PgsqlApiClient(".\\db sources\\db_config.env")
+        self.db_client = PgsqlApiClient()
         self.api_client = SteamAPIClient(os.getenv("STEAM_API_KEY"))
         self.api_client.session = aiohttp.ClientSession()
         self.bot = Bot(token=BOT_TOKEN)

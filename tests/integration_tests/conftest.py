@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 @pytest.fixture(scope="session")
 def db_config():
     return {
-        'host': os.getenv('DB_HOST', 'localhost'),
+        'host': os.getenv('DB_HOST', 'postgres'),
         'port': int(os.getenv('DB_PORT', 5432)),
         'dbname': os.getenv('DB_NAME', 'steam_data'),
         'user': os.getenv('DB_USER', 'postgres'),

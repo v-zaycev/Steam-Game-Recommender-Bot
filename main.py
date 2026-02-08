@@ -1,6 +1,6 @@
 import asyncio
 
-from bot import TelegramBot
+from sources.bot import TelegramBot
 
 async def main():
     bot = TelegramBot() 
@@ -19,4 +19,4 @@ async def main():
 
 if __name__ == "__main__":
     # Запускаем бота
-    asyncio.run(main())
+    asyncio.run(main()) 

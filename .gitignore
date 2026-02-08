@@ -10,6 +10,7 @@ _minted-report/
 *.log
 *.aux
 tmp*
-test*.py
+test?.py
+test.py
 params.env
 *.json

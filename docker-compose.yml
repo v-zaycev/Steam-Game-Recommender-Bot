@@ -4,7 +4,7 @@ services:
   postgres:
     build:
       context: .
-      dockerfile: Dockerfile.postgres_test
+      dockerfile: Dockerfile.postgres
     container_name: steam_data
     environment:
       POSTGRES_DB: steam_data  
@@ -21,9 +21,9 @@ services:
   python-tests:
     build:
       context: .
-      dockerfile: Dockerfile.python_test
-    container_name: bot_tests
+      dockerfile: Dockerfile.python
+    container_name: bot
     depends_on:
       postgres:
         condition: service_healthy
-    command: ["sh", "-c", "sleep 1 && python -m pytest tests/unit_tests/ -v && python -m pytest tests/integration_tests/ -v -s"]
+    command: ["sh", "-c", "sleep 1 && python -m main.py"]

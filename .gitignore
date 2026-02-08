@@ -13,5 +13,4 @@ _minted-report/
 tmp*
 test?.py
 test.py
-params.env
 *.json

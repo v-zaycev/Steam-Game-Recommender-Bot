@@ -2,8 +2,10 @@ version: '3.9'
 
 services:
   postgres:
-    build: .
-    container_name: steam_db
+    build:
+      context: .
+      dockerfile: Dockerfile.postgres
+    container_name: steam_data
     environment:
       POSTGRES_DB: steam_data  
       POSTGRES_USER: postgres
@@ -20,6 +22,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.python
+    container_name: bot_tests
     depends_on:
       postgres:
         condition: service_healthy
